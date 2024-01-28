@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jwt token</title>
+</head>
+<body>
+  <h1>1)search website:</h1>
+  <p>=> jwt token</p>
+  <p>=> JSON web Token (jwt.io)</p>
+  <p>=> Libraries</p>
+  <p>=> Filter by</p>
+  <p>=> Node.js</p>
+
+  <h1>2)Install (Server Site)</h1>
+  <p>=> npm install jsonwebtoken</p>
+
+  <h1>3)Import (Server Site index.html)</h1>
+  <p>=> const jwt = require('jsonwebtoken')</p>
+
+  <h1>3)Create Secret Key (Server Site)</h1>
+  <p>=> ctrl + j (open terminal)</p>
+  <p>=> node</p>
+  <p>=> require('crypto').randomBytes(64).toString('hex')</p>
+  <p>=> copy this key(with you quotation)</p>
+
+  <h1>4)(past secret key) .env (File Server)</h1>
+  <p>ACCESS_TOKE = past secret key token (এটি ব্যবহার করার সময় process.env.ACCESS_TOKE)</p>
+
+  <h1>5) Create SignIn api (Server Site)</h1>
+  <p>
+    app.post('/jwt', (req, res) => {<br>
+      const user = req.body;<br>
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {expiresIn : '1h'})<br>
+      res.send({token})<br>
+    })
+  </p>
+
+  <h1>6) Set Token Client Site (AuthProvider.jsx)</h1>
+  <p>
+    const [user, setUser] = useState([])<br>
+    useEffect(() => {<br>
+      const unsubscribe = onAuthStateChanged(auth, currentUser => {<br>
+        setUser(currentUser)<br>
+        if(currentUser && currentUser.email){<br>
+          const loggedUser = {email : currentUser.email}<br>
+          fetch('url/jwt', {<br>
+            method : 'POST',<br>
+            headers : {'content-type':'application/json'},<br>
+            body : JSON.stringify(loggedUser)<br>
+          })<br>
+          .then((res) => res.json())<br>
+          .then((data) => {<br>
+            localStorage.setItem('token', data.token)<br>
+          })<br>
+        }<br>
+        else{<br>
+          localStorage.removeItem('token')<br>
+        }<br>
+      });<br>
+      return () => {<br>
+        return unsubscribe();<br>
+      }<br>
+    },[])<br>
+  </p>
+
+  <h1>7) Client Site Users Data show and get token (users.jsx)</h1>
+  <p>
+    const [userData, setUserData] = useState([])<br>
+    const navigate = useNavigate()<br>
+    const url = `url/users?.email=${users?.email}`;<br>
+    useEffect(() =>{<br>
+      fetch(url, {<br>
+        method : 'GET',<br>
+        headers : {authorization : `Bearer ${localStorage.getItem('token')}`}<br>
+      })<br>
+      .then((res) => res.json())<br>
+      .then((data) => {<br>
+        if(!data.error){<br>
+          setUserData(data)<br>
+        }else{<br>
+          navigate('/')<br>
+        }<br>
+      })<br>
+    },[url,navigate])<br>
+  </p>
+
+  <h1>8) Create Middleware async function run() এর উপরে (Server Site index.html)</h1>
+  <p>
+    const verifyJWT = (req, res, next) => {<br>
+      const authorization = req.headers.authorization;<br>
+      if(!authorization){<br>
+        return res.status(401).send({error: true, message : 'unauthorized'})<br>
+      }<br>
+      const token = authorization.split(' ')[1];<br>
+      jwt.verify(token, process.env.ACCESS_TOKEN, (error, decoded) =>{<br>
+        if(error){<br>
+          return res.status(403).send({error: true, message : 'unauthorized'})<br>
+        }<br>
+        req.decoded = decoded;<br>
+        next()<br>
+      })<br>
+    }
+  </p>
+
+  <h1>9) Users এর  data তুলে নিয়ে আসার API (Server index.js)</h1>
+  <p>
+    app.get('/users', verifyJWT, async(req, res) => {<br>
+      let decoded = req.decoded;<br>
+      if(decoded.email !== req.query.email){<br>
+        return res.status(403).send({error: true, message : ' forbidden'})<br>
+      }<br>
+      let query = {};<br>
+      if(req.query?.email){<br>
+        query = {email : req.query.email}<br>
+      }<br>
+      const result = await usersCollection find(query).toArray();<br>
+      res.send(result)<br>
+    })<br>
+  </p>
+
+</body>
+</html>
